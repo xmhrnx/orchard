@@ -17,6 +17,7 @@ func DefaultSettings() Settings {
 		AutoStash:        true,
 		AutoFetchMinutes: 15,
 		ScanDepth:        4,
+		GroupBy:          "host",
 	}
 }
 
@@ -33,6 +34,9 @@ func (s Settings) withDefaults() Settings {
 	}
 	if s.PullStrategy == "" {
 		s.PullStrategy = d.PullStrategy
+	}
+	if s.GroupBy == "" {
+		s.GroupBy = d.GroupBy
 	}
 	if s.ScanDepth <= 0 {
 		s.ScanDepth = d.ScanDepth

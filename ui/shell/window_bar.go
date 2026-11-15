@@ -41,6 +41,7 @@ func NewWindowBar(app *giode.App, openPalette, toggleTheme func()) *WindowBar {
 		Icon(giode.Box(giode.Styles{Padding: giode.Inset{Left: 4}}, components.LogoMark(20))).
 		Leading(giode.Box(giode.Styles{Padding: giode.Inset{Left: 8}}, search)).
 		Trailing(themeBtn).
+		Variant(windowControls).
 		TitlePlacement(giode.TitleBarTitleCenter).
 		TitleMaxWidth(320)
 	return &WindowBar{bar: bar}

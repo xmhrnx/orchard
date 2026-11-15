@@ -14,6 +14,8 @@ with the Giode CLI for Windows, macOS and Linux.
 **Your whole orchard at a glance**
 - Every tracked repository with its branch, incoming and outgoing commits, local changes, stashes
   and problems (no upstream, errors), plus headline counts.
+- Sections by host (github.com, gitlab.com, your own server, local remotes, no remote) by
+  default, or by your own groups, or none. Fold a section away or update everything in it.
 - Filter by state (changed, behind, ahead, issues), search by name, path, branch or group, and
   organise repositories into groups and pins.
 - **Update all**, **Fetch all**, or check a few and update, fetch, push, group or untrack them
@@ -60,8 +62,8 @@ with the Giode CLI for Windows, macOS and Linux.
 - Shortcuts: `Ctrl/⌘+Shift+U` update all, `Ctrl/⌘+Shift+F` fetch all, `F5` refresh,
   `Ctrl/⌘+1/2/3/,` for the pages, `Alt+←` back.
 - Open a repository in the file manager or a terminal, copy paths and hashes.
-- Dark ("night orchard") and light ("morning orchard") themes, custom frameless window, animated
-  transitions.
+- Dark ("night orchard") and light ("morning orchard") themes, custom frameless window with
+  macOS-style traffic lights on a Mac and Windows-style controls elsewhere, animated transitions.
 
 ![History](docs/screenshots/history.png)
 

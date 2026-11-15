@@ -22,10 +22,7 @@ const (
 var repoFilterNames = []string{"All", "Changed", "Behind", "Ahead", "Issues"}
 
 // matches reports whether a repository passes the filter and query.
-func (f repoFilter) matches(r *core.RepoState, query, group string) bool {
-	if group != "" && r.Group != group {
-		return false
-	}
+func (f repoFilter) matches(r *core.RepoState, query string) bool {
 	if q := strings.ToLower(strings.TrimSpace(query)); q != "" {
 		hay := strings.ToLower(r.Name + " " + r.Path + " " + r.Status.Branch + " " + r.Group)
 		if !strings.Contains(hay, q) {

@@ -1,7 +1,7 @@
 package screens
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/xmhrnx/giode"
 	"github.com/xmhrnx/giode/components/checkbox"
@@ -9,10 +9,28 @@ import (
 	"github.com/xmhrnx/giode/components/segmented"
 
 	"orchard/internal/core"
+	"orchard/internal/store"
 	"orchard/ui/components"
 	"orchard/ui/env"
 	"orchard/ui/theme"
 )
+
+// repoListItem is a row of the overview list: a section header or a
+// repository card.
+type repoListItem struct {
+	section *core.RepoSection
+	repo    *core.RepoState
+}
+
+// groupByOptions pairs the grouping choices with their labels.
+var groupByOptions = []struct {
+	by    core.GroupBy
+	label string
+}{
+	{core.GroupByHost, "Group by host"},
+	{core.GroupByGroup, "Group by my groups"},
+	{core.GroupByNone, "No grouping"},
+}
 
 // ReposScreen is the overview of every tracked repository: headline
 // numbers, filters, and the list with bulk update controls.
@@ -21,11 +39,12 @@ type ReposScreen struct {
 	sel        *components.Selection
 	search     *components.SearchBox
 	filter     *segmented.Control
-	group      *dropdown.Select
-	groupsSeen string
 	selectAll  *checkbox.Checkbox
 	list       *giode.LazyListElement
 	rows       []*core.RepoState
+	items      []repoListItem
+	collapsed  map[string]bool
+	groupBy    *dropdown.Select
 	actions    *components.RepoActions
 	bulk       *components.BulkBar
 	scan       *ScanDialog
@@ -41,10 +60,21 @@ type ReposScreen struct {
 
 // NewReposScreen creates the overview. Create it once.
 func NewReposScreen(e *env.Env) *ReposScreen {
-	s := &ReposScreen{env: e, sel: components.NewSelection()}
+	s := &ReposScreen{env: e, sel: components.NewSelection(), collapsed: map[string]bool{}}
+	labels := make([]string, len(groupByOptions))
+	current := 0
+	for i, o := range groupByOptions {
+		labels[i] = o.label
+		if string(o.by) == e.WS.Settings().GroupBy {
+			current = i
+		}
+	}
+	s.groupBy = giode.Input.Select(components.FieldStyle().With(giode.Styles{Width: 190}), labels...).OnChange(func(i int) {
+		e.Fail("Saving settings", e.WS.UpdateSettings(func(st *store.Settings) { st.GroupBy = string(groupByOptions[i].by) }))
+	})
+	s.groupBy.SetSelected(current)
 	s.search = components.NewSearchBox("Filter by name, path, branch or group")
 	s.filter = giode.Input.Segmented(repoFilterNames...)
-	s.group = giode.Input.Select(components.FieldStyle().With(giode.Styles{Width: 170}), "All groups")
 	s.selectAll = giode.Input.Checkbox("", giode.Styles{Background: theme.Primary, BorderColor: theme.Muted}).
 		OnChange(func(on bool) { s.sel.SetAll(s.visibleIDs(), on) })
 	s.scan = NewScanDialog(e)
@@ -52,11 +82,9 @@ func NewReposScreen(e *env.Env) *ReposScreen {
 	s.confirm = components.NewConfirmDialog()
 	s.actions = s.repoActions()
 	s.list = giode.LazyList(
-		func() int { return len(s.rows) },
-		func(i int) any { return s.rows[i].ID },
-		func(i int) giode.Element {
-			return giode.Box(giode.Styles{Width: -1, Padding: giode.Inset{Bottom: 8}}, components.RepoCardFor(s.rows[i], s.sel, s.actions))
-		},
+		func() int { return len(s.items) },
+		func(i int) any { return s.itemKey(i) },
+		s.item,
 		giode.Styles{ScrollBar: giode.ScrollBar{Width: 6, AutoHide: true, TrackColor: "transparent"}},
 	)
 	s.add = components.Button("Add folder", "folder-plus", components.Secondary, s.addFolder)
@@ -158,26 +186,11 @@ func (s *ReposScreen) confirmRemove(ids []string) {
 	})
 }
 
-// syncGroups refreshes the group dropdown when groups come and go.
-func (s *ReposScreen) syncGroups() {
-	groups := s.env.WS.Groups()
-	key := strings.Join(groups, "\x00")
-	if key == s.groupsSeen {
-		return
-	}
-	s.groupsSeen = key
-	s.group.SetOptions(append([]string{"All groups"}, groups...)...)
-}
-
 func (s *ReposScreen) collectRows() {
-	group := ""
-	if s.group.Selected() > 0 {
-		group = s.group.Value()
-	}
 	f := repoFilter(s.filter.Selected())
 	s.rows = s.rows[:0]
 	for _, r := range s.env.WS.Repos() {
-		if f.matches(r, s.search.Query(), group) {
+		if f.matches(r, s.search.Query()) {
 			s.rows = append(s.rows, r)
 		}
 	}
@@ -185,11 +198,80 @@ func (s *ReposScreen) collectRows() {
 	s.selectAll.SetChecked(s.sel.AllOf(s.visibleIDs()))
 }
 
-func (s *ReposScreen) toolbar() giode.Element {
-	kids := []giode.Element{s.selectAll, giode.Box(giode.Styles{FlexGrow: 1, MinWidth: 220}, s.search), s.filter}
-	if len(s.env.WS.Groups()) > 0 {
-		kids = append(kids, s.group)
+// buildItems lays the filtered repositories out in sections, leaving out
+// the cards of folded sections.
+func (s *ReposScreen) buildItems() {
+	// Sections reshuffle as remotes are read; a list showing its top
+	// stays at the top rather than following the card it showed first.
+	first, _ := s.list.VisibleRange()
+	atTop := first <= 0
+	before := ""
+	if len(s.items) > 0 {
+		before = fmt.Sprint(s.itemKey(0))
 	}
+	defer func() {
+		if atTop && len(s.items) > 0 && fmt.Sprint(s.itemKey(0)) != before {
+			s.list.ScrollToKey(s.itemKey(0), giode.LazyAlignStart)
+		}
+	}()
+	by := core.GroupBy(s.env.WS.Settings().GroupBy)
+	s.items = s.items[:0]
+	for _, sec := range core.Sections(s.rows, by) {
+		sec := sec
+		if by != core.GroupByNone {
+			s.items = append(s.items, repoListItem{section: &sec})
+			if s.collapsed[sec.Key] {
+				continue
+			}
+		}
+		for _, r := range sec.Repos {
+			s.items = append(s.items, repoListItem{repo: r})
+		}
+	}
+}
+
+func (s *ReposScreen) itemKey(i int) any {
+	if it := s.items[i]; it.section != nil {
+		return "section:" + it.section.Key
+	}
+	return s.items[i].repo.ID
+}
+
+func (s *ReposScreen) item(i int) giode.Element {
+	it := s.items[i]
+	if it.section == nil {
+		return giode.Box(giode.Styles{Width: -1, Padding: giode.Inset{Bottom: 8}}, components.RepoCardFor(it.repo, s.sel, s.actions))
+	}
+	sec := it.section
+	ids := make([]string, len(sec.Repos))
+	behind := 0
+	for j, r := range sec.Repos {
+		ids[j] = r.ID
+		if r.Status.Behind > 0 {
+			behind++
+		}
+	}
+	key := sec.Key
+	info := components.SectionInfo{Icon: sectionIcon(sec.Kind), Title: sec.Title, Count: len(sec.Repos), Behind: behind, Collapsed: s.collapsed[key]}
+	return components.SectionHeaderFor(key, info,
+		func() { s.collapsed[key] = !s.collapsed[key] },
+		func() { s.runOn(core.OpPull, ids) })
+}
+
+func sectionIcon(kind string) string {
+	switch kind {
+	case core.SectionHost:
+		return "server"
+	case core.SectionGroup:
+		return "layers"
+	case core.SectionLocal:
+		return "folder"
+	}
+	return "link"
+}
+
+func (s *ReposScreen) toolbar() giode.Element {
+	kids := []giode.Element{s.selectAll, giode.Box(giode.Styles{FlexGrow: 1, MinWidth: 220}, s.search), s.filter, s.groupBy}
 	return giode.Row(giode.Styles{Width: -1, Gap: 12, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap, Padding: giode.Inset{Left: 14}}, kids...)
 }
 
@@ -213,8 +295,8 @@ func (s *ReposScreen) body() giode.Element {
 
 // Layout draws the screen.
 func (s *ReposScreen) Layout(gtx giode.Context) giode.Dimensions {
-	s.syncGroups()
 	s.collectRows()
+	s.buildItems()
 	return giode.Box(giode.Styles{Width: -1, Height: -1},
 		giode.Stack(giode.Styles{Width: -1, Height: -1, Gap: 22, Padding: giode.Inset{Top: 26, Left: 32, Right: 32}},
 			components.PageHeader("Repositories", "Everything you grow, in one place. Update one, a few, or all of them.",

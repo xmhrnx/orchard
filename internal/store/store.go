@@ -34,6 +34,8 @@ type Settings struct {
 	AutoFetchMinutes int               `json:"auto_fetch_minutes"`
 	ScanDepth        int               `json:"scan_depth"`
 	PreferSSH        bool              `json:"prefer_ssh"`
+	// GroupBy sections the repository list: "host", "group" or "none".
+	GroupBy string `json:"group_by"`
 }
 
 // State is everything Orchard saves.
