@@ -115,9 +115,15 @@ func (p *CommitPanel) branchHere() {
 
 func (p *CommitPanel) tagHere() {
 	hash := p.commit.Hash
-	p.prompt.Ask("Tag "+p.commit.Short(), "Tag name", "v1.2.3", "", "Create tag", func(name string) {
-		p.act("Tagging", "Tagged "+name, func(ctx context.Context, path string) error {
-			return gitx.CreateTag(ctx, path, name, hash, "")
+	p.prompt.Ask("Tag "+p.commit.Short(), "Tag name (pushed to origin too)", "v1.2.3", "", "Create tag", func(name string) {
+		pushed := false
+		p.env.WS.Do(p.repo.ID, "Tagging", func(ctx context.Context, path string) error {
+			var err error
+			pushed, err = createAndPushTag(ctx, path, name, hash)
+			return err
+		}, func(err error) {
+			p.env.Done(tagCreated(name, pushed), err)
+			p.changed()
 		})
 	})
 }
