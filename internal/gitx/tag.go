@@ -64,3 +64,45 @@ func DeleteTags(ctx context.Context, dir string, names []string, remote string) 
 	_, err := run(ctx, dir, append([]string{"tag", "-d"}, names...)...)
 	return err
 }
+
+// DeleteTagsIfPresent deletes tags from origin and locally, skipping
+// each place a tag doesn't exist, so cleaning up after releases never
+// fails on a tag that was already gone.
+func DeleteTagsIfPresent(ctx context.Context, dir string, names []string) error {
+	local, err := Tags(ctx, dir)
+	if err != nil {
+		return err
+	}
+	have := map[string]bool{}
+	for _, t := range local {
+		have[t.Name] = true
+	}
+	out, err := run(ctx, dir, "ls-remote", "--tags", "origin")
+	if err != nil {
+		return err
+	}
+	remote := map[string]bool{}
+	for _, line := range strings.Split(out, "\n") {
+		if f := strings.Fields(line); len(f) == 2 {
+			remote[strings.TrimSuffix(strings.TrimPrefix(f[1], "refs/tags/"), "^{}")] = true
+		}
+	}
+	var refs, locals []string
+	for _, n := range names {
+		if remote[n] {
+			refs = append(refs, ":refs/tags/"+n)
+		}
+		if have[n] {
+			locals = append(locals, n)
+		}
+	}
+	if len(refs) > 0 {
+		if _, err := run(ctx, dir, append([]string{"push", "origin"}, refs...)...); err != nil {
+			return err
+		}
+	}
+	if len(locals) > 0 {
+		_, err = run(ctx, dir, append([]string{"tag", "-d"}, locals...)...)
+	}
+	return err
+}

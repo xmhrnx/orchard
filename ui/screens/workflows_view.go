@@ -47,6 +47,7 @@ type WorkflowsView struct {
 	linked     bool
 	supported  bool
 	loading    bool
+	loadErr    error
 	polling    bool
 	laidOut    time.Time
 	data       workflowsData
@@ -63,6 +64,7 @@ type WorkflowsView struct {
 	runBtn     *giode.ButtonElement
 	reload     *components.IconAction
 	connect    *giode.ButtonElement
+	retry      *giode.ButtonElement
 	confirm    *components.ConfirmDialog
 	dispatch   *RunWorkflowDialog
 }
@@ -75,6 +77,7 @@ func NewWorkflowsView(e *env.Env) *WorkflowsView {
 	v.selectAll = giode.Input.Checkbox("", giode.Styles{Background: theme.Primary, BorderColor: theme.Muted}).
 		OnChange(func(on bool) { v.sel.SetAll(v.shownIDs(), on) })
 	v.reload = components.NewIconAction("fetch", "Reload", v.load)
+	v.retry = components.Button("Try again", "fetch", components.Secondary, v.load)
 	v.connect = components.Button("Connect an account", "user", components.Primary, func() { e.Nav.Open(env.PageAccounts) })
 	v.dispatch = NewRunWorkflowDialog(e, func() { time.AfterFunc(3*time.Second, func() { e.App.Post(v.load) }) })
 	v.runBtn = components.Button("Run workflow", "play", components.Primary, func() {
@@ -126,13 +129,13 @@ func (v *WorkflowsView) load() {
 		if v.repo == nil || v.repo.ID != repoID {
 			return
 		}
-		v.loading = false
+		v.loading, v.loadErr = false, nil
 		if errors.Is(err, forge.ErrNoWorkflows) {
 			v.supported = false
 			return
 		}
 		if err != nil {
-			v.env.Fail("Loading workflow runs", err)
+			v.loadErr = err
 			return
 		}
 		v.data = d
@@ -197,11 +200,12 @@ func (v *WorkflowsView) confirmBulk(act runAction, ids []string) {
 		v.env.Toasts.Show(giode.ToastInfo, why)
 		return
 	}
-	body := fmt.Sprintf("%d runs will be %s.", len(runs), [...]string{"started again", "stopped", "deleted with their logs"}[act])
+	n := count(len(runs), "run", "runs")
+	body := fmt.Sprintf("%s will be %s.", n, [...]string{"started again", "stopped", "deleted with their logs"}[act])
 	if skipped > 0 {
-		body += fmt.Sprintf(" %d selected runs don't apply and are left alone.", skipped)
+		body += " " + count(skipped, "selected run doesn't apply and is", "selected runs don't apply and are") + " left alone."
 	}
-	v.confirm.Ask(fmt.Sprintf("%s %d runs?", verb, len(runs)), body, verb, act == actDelete, func() {
+	v.confirm.Ask(verb+" "+n+"?", body, verb, act == actDelete, func() {
 		v.sel.Clear()
 		v.apply(act, runs)
 	})
@@ -224,7 +228,7 @@ func (v *WorkflowsView) apply(act runAction, runs []forge.WorkflowRun) {
 			return wf.DeleteWorkflowRun(ctx, slug, r.ID)
 		}, func(ok int, err error) {
 			if ok > 0 {
-				v.env.Toasts.Show(giode.ToastSuccess, fmt.Sprintf("%s %d runs", [...]string{"Restarted", "Cancelled", "Deleted"}[act], ok))
+				v.env.Toasts.Show(giode.ToastSuccess, [...]string{"Restarted", "Cancelled", "Deleted"}[act]+" "+count(ok, "run", "runs"))
 			}
 			v.env.Fail("Some runs failed", err)
 			v.load()
@@ -330,6 +334,8 @@ func (v *WorkflowsView) body() giode.Element {
 	case !v.supported:
 		return components.EmptyState("workflow", "CI not available here",
 			v.account.Kind.Title()+"'s CI isn't supported yet. GitHub Actions, GitLab pipelines and Bitbucket Pipelines are.", nil)
+	case v.loadErr != nil:
+		return components.EmptyState("alert", "Couldn't load workflow runs", v.loadErr.Error(), v.retry)
 	case v.loading && len(v.data.runs) == 0:
 		return giode.Box(giode.Styles{Width: -1, Padding: giode.UniformInset(40), Justify: giode.JustifyCenter},
 			giode.Spinner(giode.Styles{Width: 28, Height: 28, Color: theme.Primary}))

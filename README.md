@@ -40,6 +40,10 @@ with the Giode CLI for Windows, macOS and Linux.
   **delete several at once** (on the server too for remote branches).
 - **Tags**: create, push, and **delete any number of tags at once**, locally or everywhere, in a
   single push.
+- **Releases**: GitHub, GitLab and Gitea/Forgejo releases with their notes rendered and their
+  downloads; create releases (from an existing or new tag, as drafts or pre-releases, with
+  generated notes on GitHub), publish drafts, and **delete many releases at once**, optionally
+  removing their tags from origin and this computer too.
 - **Stashes** and **Remotes**: everything you'd expect.
 - **Pull requests**: list open pull/merge requests and **close or merge many at once**.
 - **Workflows**: CI runs from GitHub Actions, GitLab pipelines and Bitbucket Pipelines with live
@@ -64,6 +68,8 @@ with the Giode CLI for Windows, macOS and Linux.
 ![Bulk tag deletion](docs/screenshots/tags.png)
 
 ![Workflows](docs/screenshots/workflows.png)
+
+![Releases](docs/screenshots/releases.png)
 
 ## Requirements
 
@@ -108,7 +114,7 @@ internal/
   gitx/              the git engine: runs the git CLI (status, log, sync, branches, tags,
                      stashes, remotes, diffs, clone with progress, history rewriting)
   graph/             lays out commit history as lanes for the tree
-  forge/             GitHub, GitLab, Gitea/Forgejo and Bitbucket APIs (pull requests, CI runs)
+  forge/             GitHub, GitLab, Gitea/Forgejo and Bitbucket APIs (pull requests, CI runs, releases)
   store/             settings, repositories and accounts on disk
   batch/             bounded parallel work over many items
   core/              the workspace: tracked repositories, bulk operations, accounts

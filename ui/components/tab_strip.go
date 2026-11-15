@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/xmhrnx/giode"
+	"github.com/xmhrnx/giode/components/scroll"
 
 	"orchard/ui/theme"
 )
@@ -16,17 +17,20 @@ type Tab struct {
 }
 
 // TabStrip is a row of tabs in a sunken track; the active tab rises out
-// of it as a raised chip with an emerald underline.
+// of it as a raised chip with an underline. When the tabs don't fit,
+// the track scrolls sideways instead of wrapping.
 type TabStrip struct {
 	tabs     []Tab
 	active   int
 	items    []*giode.PressableElement
 	onChange func(int)
+	track    *scroll.Scroll
 }
 
 // NewTabStrip creates the tabs. Create it once.
 func NewTabStrip(onChange func(int), tabs ...Tab) *TabStrip {
 	t := &TabStrip{tabs: tabs, onChange: onChange}
+	t.track = giode.Scroll(t.row, giode.Styles{ScrollBar: giode.ScrollBar{Hidden: true}}).Axis(giode.Horizontal)
 	for i := range tabs {
 		t.items = append(t.items, giode.Pressable(func(s giode.PressState) giode.Element {
 			return t.tab(i, s)
@@ -69,7 +73,7 @@ func (t *TabStrip) tab(i int, s giode.PressState) giode.Element {
 	if on {
 		underline = theme.Primary
 	}
-	st := giode.Styles{Padding: giode.SymmetricInset(12, 7), BorderRadius: 8, Background: bg, Transition: theme.HoverFade}
+	st := giode.Styles{Padding: giode.SymmetricInset(10, 7), BorderRadius: 8, Background: bg, Transition: theme.HoverFade}
 	if on {
 		st.BoxShadow = giode.BoxShadow{Y: 2, Blur: 8, Color: "#00000040"}
 	}
@@ -79,15 +83,18 @@ func (t *TabStrip) tab(i int, s giode.PressState) giode.Element {
 	)
 }
 
-// Layout draws the strip.
-func (t *TabStrip) Layout(gtx giode.Context) giode.Dimensions {
+func (t *TabStrip) row() giode.Element {
 	els := make([]giode.Element, len(t.items))
 	for i, it := range t.items {
 		els[i] = it
 	}
-	return giode.Row(giode.Styles{
-		Gap: 2, Align: giode.AlignCenter, Wrap: giode.WrapWrap,
-		Padding: giode.Inset{Top: 4, Left: 4, Right: 4}, BorderRadius: 12, Background: theme.Sunken,
+	return giode.Row(giode.Styles{Gap: 2, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap, Padding: giode.Inset{Top: 4, Left: 4, Right: 4}}, els...)
+}
+
+// Layout draws the strip.
+func (t *TabStrip) Layout(gtx giode.Context) giode.Dimensions {
+	return giode.Box(giode.Styles{
+		BorderRadius: 12, Background: theme.Sunken, Overflow: giode.OverflowHidden,
 		BorderWidth: 1, BorderColor: theme.Hairline,
-	}, els...).Layout(gtx)
+	}, t.track).Layout(gtx)
 }

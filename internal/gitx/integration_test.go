@@ -128,3 +128,31 @@ func TestPullWithoutUpstreamSaysSo(t *testing.T) {
 		t.Fatalf("Pull = %v, want ErrNoUpstream", err)
 	}
 }
+
+func TestDeleteTagsIfPresentSkipsMissingTags(t *testing.T) {
+	origin := newRepo(t)
+	ctx := context.Background()
+	clone := filepath.Join(t.TempDir(), "clone")
+	if err := Clone(ctx, CloneOptions{URL: origin, Dest: clone}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(ctx, origin, "tag", "remote-only"); err != nil {
+		t.Fatal(err)
+	}
+	if err := DeleteTagsIfPresent(ctx, clone, []string{"v1", "remote-only", "nowhere"}); err != nil {
+		t.Fatal(err)
+	}
+	for dir, gone := range map[string][]string{origin: {"v1", "remote-only"}, clone: {"v1"}} {
+		tags, err := Tags(ctx, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, tg := range tags {
+			for _, g := range gone {
+				if tg.Name == g {
+					t.Errorf("%s still has tag %s", dir, g)
+				}
+			}
+		}
+	}
+}
