@@ -4,19 +4,19 @@ package theme
 
 import "github.com/xmhrnx/giode"
 
-// darkPalette is "night orchard": deep forest surfaces, emerald growth
+// darkPalette is "night orchard": deep forest surfaces, jade growth
 // and amber fruit.
 var darkPalette = giode.Palette{
-	Primary:    "#34D399",
-	Secondary:  "#5EEAD4",
+	Primary:    "#1F9D74",
+	Secondary:  "#23B183",
 	Background: "#080C0B",
 	Surface:    "#111816",
 	Text:       "#E7EFEC",
 	Border:     "#22302B",
-	OnPrimary:  "#04140E",
+	OnPrimary:  "#FFFFFF",
 	Muted:      "#8A9C95",
 	Accent:     "#F5B54A",
-	Success:    "#34D399",
+	Success:    "#23B183",
 	Warning:    "#F5B54A",
 	Danger:     "#F87171",
 	Info:       "#60A5FA",

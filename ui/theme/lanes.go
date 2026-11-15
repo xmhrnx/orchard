@@ -5,7 +5,7 @@ import "github.com/xmhrnx/giode"
 // laneColors colour the commit graph's lanes; they read on both the
 // dark and light canvas.
 var laneColors = []giode.Color{
-	"#34D399", "#F5B54A", "#60A5FA", "#F472B6", "#A78BFA",
+	"#23B183", "#F5B54A", "#60A5FA", "#F472B6", "#A78BFA",
 	"#2DD4BF", "#FB923C", "#A3E635", "#F87171", "#38BDF8",
 }
 

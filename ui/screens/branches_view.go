@@ -182,14 +182,17 @@ func (v *BranchesView) row(b gitx.Branch) giode.Element {
 		if b.Remote {
 			icon, tint = "globe", theme.Info
 		}
-		name = append(name, components.Glyph(icon, 14, tint), giode.Text(b.Name, theme.Ellipsis(theme.Tinted(theme.Code, theme.Text))))
+		nameStyle := theme.Ellipsis(theme.Tinted(theme.Code, theme.Text))
+		nameStyle.MaxWidth = 300
+		name = append(name, components.Glyph(icon, 14, tint), giode.Text(b.Name, nameStyle))
+		if b.Upstream != "" {
+			name = append(name, components.Pill("link", upstreamLabel(b), theme.Muted, theme.Hover))
+		}
 		if b.Track != "" {
 			name = append(name, components.Pill("", strings.Trim(b.Track, "[]"), theme.Accent, theme.AccentSoft))
-		} else if b.Upstream != "" {
-			name = append(name, components.Pill("link", b.Upstream, theme.Muted, theme.Hover))
 		}
 		return giode.Row(giode.Styles{Width: -1, Gap: 10, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap},
-			giode.Row(giode.Styles{Gap: 8, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap, Width: 320}, name...),
+			giode.Row(giode.Styles{Gap: 8, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap, Width: 480}, name...),
 			giode.Box(giode.Styles{FlexGrow: 1}, giode.Text(b.Subject, theme.Ellipsis(theme.Caption))),
 			giode.Text(b.Hash, theme.CodeDim),
 			v.menu(b),
@@ -228,4 +231,13 @@ func (v *BranchesView) Layout(gtx giode.Context) giode.Dimensions {
 		giode.Box(giode.Styles{Position: giode.PositionAbsolute, Bottom: 20, Left: giode.Flush, Right: giode.Flush, Justify: giode.JustifyCenter, ZIndex: 5}, v.bulk),
 		v.prompt, v.confirm,
 	).Layout(gtx)
+}
+
+// upstreamLabel names a branch's upstream briefly: just the remote when
+// the branch tracks its namesake there ("origin" for origin/main).
+func upstreamLabel(b gitx.Branch) string {
+	if remote, ref, ok := strings.Cut(b.Upstream, "/"); ok && ref == b.Name {
+		return remote
+	}
+	return b.Upstream
 }
