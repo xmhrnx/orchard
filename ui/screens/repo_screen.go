@@ -33,6 +33,7 @@ func NewRepoScreen(e *env.Env) *RepoScreen {
 		NewStashesView(e),
 		NewRemotesView(e),
 		NewPullsView(e),
+		NewWorkflowsView(e),
 		NewRewriteView(e),
 	}
 	s.tabs = components.NewTabStrip(s.switchTab,
@@ -48,6 +49,7 @@ func NewRepoScreen(e *env.Env) *RepoScreen {
 		components.Tab{Label: "Stashes", Icon: "stash"},
 		components.Tab{Label: "Remotes", Icon: "globe"},
 		components.Tab{Label: "Pull requests", Icon: "pull-request"},
+		components.Tab{Label: "Workflows", Icon: "workflow"},
 		components.Tab{Label: "Rewrite", Icon: "scissors"},
 	)
 	s.stage = giode.Transition(giode.Raw(s.layoutView), giode.Fade|giode.SlideUp, theme.Quick*2, giode.EaseOut)

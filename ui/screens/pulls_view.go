@@ -2,14 +2,11 @@ package screens
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/xmhrnx/giode"
 	"github.com/xmhrnx/giode/components/checkbox"
 
-	"orchard/internal/batch"
 	"orchard/internal/core"
 	"orchard/internal/forge"
 	"orchard/ui/components"
@@ -116,41 +113,23 @@ func (v *PullsView) confirmBulk(merge bool) {
 
 // apply closes or merges requests a few at a time.
 func (v *PullsView) apply(numbers []int, merge bool) {
-	acc, slug := v.account, v.slug
-	core.Query(v.env.WS, func(ctx context.Context) (core.Result, error) {
-		client, err := v.env.WS.Client(acc)
-		if err != nil {
-			return core.Result{}, err
-		}
-		res := core.Result{Label: "Closed"}
-		if merge {
-			res.Label = "Merged"
-		}
-		var (
-			mu   sync.Mutex
-			errs []error
-		)
-		batch.Each(ctx, numbers, 4, func(ctx context.Context, n int) error {
+	verb, slug := "Closed", v.slug
+	if merge {
+		verb = "Merged"
+	}
+	forgeBulk(v.env, v.account, numbers, func(n int) string { return fmt.Sprintf("#%d", n) },
+		func(ctx context.Context, c forge.Client, n int) error {
 			if merge {
-				return client.MergePullRequest(ctx, slug, n)
+				return c.MergePullRequest(ctx, slug, n)
 			}
-			return client.ClosePullRequest(ctx, slug, n)
-		}, func(n int, err error) {
-			if err != nil {
-				mu.Lock()
-				errs = append(errs, fmt.Errorf("#%d: %w", n, err))
-				mu.Unlock()
+			return c.ClosePullRequest(ctx, slug, n)
+		}, func(ok int, err error) {
+			if ok > 0 {
+				v.env.Toasts.Show(giode.ToastSuccess, fmt.Sprintf("%s %d requests", verb, ok))
 			}
+			v.env.Fail("Some requests failed", err)
+			v.load()
 		})
-		res.Done = len(numbers) - len(errs)
-		return res, errors.Join(errs...)
-	}, func(res core.Result, err error) {
-		if res.Done > 0 {
-			v.env.Toasts.Show(giode.ToastSuccess, fmt.Sprintf("%s %d requests", res.Label, res.Done))
-		}
-		v.env.Fail("Some requests failed", err)
-		v.load()
-	})
 }
 
 func (v *PullsView) row(p forge.PullRequest) giode.Element {

@@ -42,6 +42,10 @@ with the Giode CLI for Windows, macOS and Linux.
   single push.
 - **Stashes** and **Remotes**: everything you'd expect.
 - **Pull requests**: list open pull/merge requests and **close or merge many at once**.
+- **Workflows**: CI runs from GitHub Actions, GitLab pipelines and Bitbucket Pipelines with live
+  status (the list refreshes itself while runs are going), filters for active, failed and
+  succeeded runs, **re-run, cancel or delete many runs at once**, and start a workflow by hand on
+  any branch or tag.
 - **Rewrite**: what git doesn't make easy. Remove files or folders from all of history, scrub
   leaked secrets, fix an author identity, strip large files, find the largest files ever
   committed, squash recent commits, reword or undo the last commit, and force-push the result.
@@ -58,6 +62,8 @@ with the Giode CLI for Windows, macOS and Linux.
 ![History](docs/screenshots/history.png)
 
 ![Bulk tag deletion](docs/screenshots/tags.png)
+
+![Workflows](docs/screenshots/workflows.png)
 
 ## Requirements
 
@@ -102,7 +108,7 @@ internal/
   gitx/              the git engine: runs the git CLI (status, log, sync, branches, tags,
                      stashes, remotes, diffs, clone with progress, history rewriting)
   graph/             lays out commit history as lanes for the tree
-  forge/             GitHub, GitLab, Gitea/Forgejo and Bitbucket APIs
+  forge/             GitHub, GitLab, Gitea/Forgejo and Bitbucket APIs (pull requests, CI runs)
   store/             settings, repositories and accounts on disk
   batch/             bounded parallel work over many items
   core/              the workspace: tracked repositories, bulk operations, accounts
