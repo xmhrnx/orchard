@@ -207,6 +207,16 @@
   .lane-list b { display: block; font-size: 16px; margin-bottom: 3px; }
   .lane-list span { color: var(--muted); font-size: 15px; }
 
+  /* privacy policy */
+  .policy { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .policy div { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; }
+  .policy h3 { margin: 0 0 8px; font-size: 17px; letter-spacing: -.01em; }
+  .policy p { margin: 0; color: var(--muted); font-size: 15px; }
+  .policy p + p { margin-top: 10px; }
+  .policy code { font-size: 13px; color: var(--text); }
+  .policy-meta { color: var(--muted); font-size: 14px; margin-top: 22px; }
+  .policy-meta a { color: var(--jade-light); }
+
   .hosts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
   .pill {
     font: 500 13px var(--mono); padding: 6px 11px; border-radius: 8px;
@@ -273,6 +283,7 @@
     .tree { max-width: 300px; grid-row: 1; }
     .split { grid-template-columns: 1fr; }
     .lane-list { grid-template-columns: 1fr; }
+    .policy { grid-template-columns: 1fr; }
     .lane-list li:nth-child(2)::after { top: 0; }
     .lane-list li:nth-last-child(2)::after { bottom: 0; }
   }
@@ -464,6 +475,35 @@ giode run
 giode build linux windows</pre>
     </section>
   </div>
+
+  <section class="block" id="privacy">
+    <div class="wrap">
+      <div class="kicker">// privacy policy</div>
+      <h2>Your repositories stay yours.</h2>
+      <p class="sub">Orchard has no servers, no accounts of its own, no analytics and no tracking. It collects nothing and sends nothing to its developer. This policy covers the Orchard app from GitHub and the Microsoft Store.</p>
+      <div class="policy">
+        <div>
+          <h3>What stays on your computer</h3>
+          <p>The list of repositories you add (their folder paths, names, groups and pins), the hosting accounts you connect (service, host and username) and your settings are saved in one file, <code>Orchard/state.json</code> in your user configuration folder (<code>%AppData%</code> on Windows, <code>~/Library/Application Support</code> on macOS, <code>~/.config</code> on Linux).</p>
+          <p>Account tokens are kept in your system's credential store (Credential Manager, Keychain or Secret Service), never in that file.</p>
+        </div>
+        <div>
+          <h3>What goes over the network</h3>
+          <p>Orchard runs the git installed on your computer, which talks to the remotes of your repositories when you fetch, pull, push or clone, and every 15 minutes for automatic fetching (you can change or turn this off in Settings). git uses your own SSH keys and credential helpers.</p>
+          <p>When you connect a GitHub, GitLab, Gitea/Forgejo or Bitbucket account, Orchard calls that service's API with your token to show and manage repositories, releases, pull requests and workflows. Nothing else is contacted.</p>
+        </div>
+        <div>
+          <h3>What is shared</h3>
+          <p>Nothing with us or anyone else. The services you connect receive what any git client sends them, under their own privacy policies. Links you open in Orchard open in your browser.</p>
+        </div>
+        <div>
+          <h3>Removing your data</h3>
+          <p>Removing an account in Orchard deletes its token from the credential store. Deleting the <code>Orchard</code> folder in your configuration folder removes everything else. Your repositories themselves are never uploaded anywhere by Orchard.</p>
+        </div>
+      </div>
+      <p class="policy-meta">This website is hosted on GitHub Pages and loads its fonts from Google Fonts; it sets no cookies and has no analytics. Questions: <a href="https://github.com/xmhrnx/orchard/issues">open an issue</a>. Last updated 19 November 2026.</p>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -473,6 +513,7 @@ giode build linux windows</pre>
       <a href="https://github.com/xmhrnx/orchard">Source</a>
       <a href="https://github.com/xmhrnx/orchard/releases">Releases</a>
       <a href="https://github.com/xmhrnx/orchard/issues">Issues</a>
+      <a href="#privacy">Privacy</a>
       <a href="https://github.com/xmhrnx/orchard/blob/main/LICENSE">License</a>
     </div>
   </div>
