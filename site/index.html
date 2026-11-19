@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orchard: tend every git repository</title>
+<meta name="description" content="Orchard is a desktop app for Windows, macOS and Linux that keeps every git repository on your computer in one place and updates them all with a click.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#080C0B" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F2EC" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Night orchard: the app's dark palette. */
+  :root {
+    --bg: #080C0B;
+    --bg-2: #0B1210;
+    --surface: #111816;
+    --surface-2: #15201C;
+    --text: #E7EFEC;
+    --muted: #8A9C95;
+    --border: #22302B;
+    --jade: #23B183;
+    --jade-deep: #1F9D74;
+    --jade-light: #6EE7B7;
+    --amber: #F5B54A;
+    --amber-deep: #C46A12;
+    --on-jade: #04130E;
+    --glow: rgba(52, 211, 153, .16);
+    --shadow: 0 30px 80px -20px rgba(0, 0, 0, .7);
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  /* Morning orchard: parchment, deep leaves and honey. */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #F4F2EC;
+      --bg-2: #EEEBE2;
+      --surface: #FFFFFF;
+      --surface-2: #FAF8F3;
+      --text: #14201B;
+      --muted: #66766F;
+      --border: #DCD8CC;
+      --jade: #0E9F6E;
+      --jade-deep: #0F766E;
+      --jade-light: #0E9F6E;
+      --amber: #C77A0A;
+      --amber-deep: #9A5B05;
+      --on-jade: #FFFFFF;
+      --glow: rgba(14, 159, 110, .12);
+      --shadow: 0 30px 70px -25px rgba(40, 50, 30, .35);
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+  code, kbd, .mono { font-family: var(--mono); }
+  .wrap { width: min(1160px, 100% - 40px); margin-inline: auto; }
+
+  /* ---------- top bar ---------- */
+  .top {
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  }
+  .top .wrap { display: flex; align-items: center; gap: 16px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; letter-spacing: -.01em; }
+  .brand img { width: 30px; height: 30px; }
+  .top nav { margin-left: auto; display: flex; gap: 22px; font-size: 14px; }
+  .top nav a { text-decoration: none; color: var(--muted); }
+  .top nav a:hover { color: var(--text); }
+  @media (max-width: 640px) { .top nav .opt { display: none; } }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; padding: 84px 0 40px; isolation: isolate; }
+  .hero::before {
+    content: ""; position: absolute; inset: -120px 0 auto; height: 720px; z-index: -1;
+    background:
+      radial-gradient(600px 380px at 50% 30%, var(--glow), transparent 70%),
+      radial-gradient(300px 200px at 72% 18%, color-mix(in srgb, var(--amber) 14%, transparent), transparent 70%);
+  }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font: 500 13px/1 var(--mono); color: var(--jade-light);
+    padding: 7px 12px; border: 1px solid color-mix(in srgb, var(--jade) 40%, transparent);
+    border-radius: 999px; background: color-mix(in srgb, var(--jade) 9%, transparent);
+  }
+  .eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+  h1 {
+    font-size: clamp(44px, 7.4vw, 84px); line-height: .98; letter-spacing: -.045em;
+    margin: 22px 0 18px; font-weight: 800;
+  }
+  h1 .fruit {
+    background: linear-gradient(120deg, var(--amber) 10%, #FFE3A3 50%, var(--amber) 90%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  @media (prefers-color-scheme: light) {
+    h1 .fruit { background-image: linear-gradient(120deg, #9A5B05 10%, #E0950F 55%, #C77A0A 90%); }
+  }
+  .lede { font-size: clamp(17px, 2vw, 20px); color: var(--muted); max-width: 34em; margin: 0 0 30px; }
+  .lede strong { color: var(--text); font-weight: 600; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px; text-decoration: none;
+    font-weight: 600; font-size: 15px; padding: 13px 20px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface); transition: transform .15s, border-color .15s, background .15s;
+  }
+  .btn:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--jade) 60%, var(--border)); }
+  .btn.primary { background: var(--jade); border-color: var(--jade); color: var(--on-jade); }
+  .btn.primary:hover { background: var(--jade-light); border-color: var(--jade-light); }
+  @media (prefers-color-scheme: light) { .btn.primary:hover { background: var(--jade-deep); border-color: var(--jade-deep); } }
+  .btn svg { width: 18px; height: 18px; }
+  .platforms { margin-top: 18px; font-size: 13px; color: var(--muted); font-family: var(--mono); }
+
+  /* the tree: git lanes growing into an orchard */
+  .tree { position: relative; aspect-ratio: 1; max-width: 460px; justify-self: center; width: 100%; }
+  .tree .icon {
+    position: absolute; inset: 22%; width: 56%; height: 56%;
+    filter: drop-shadow(0 30px 50px rgba(0,0,0,.45));
+    animation: float 7s ease-in-out infinite;
+  }
+  .tree svg.lanes { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .lanes path { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 600; stroke-dashoffset: 600; animation: grow 2.4s cubic-bezier(.2,.7,.2,1) forwards; }
+  .lanes .l1 { stroke: color-mix(in srgb, var(--jade) 55%, transparent); }
+  .lanes .l2 { stroke: color-mix(in srgb, var(--amber) 50%, transparent); animation-delay: .3s; }
+  .lanes .l3 { stroke: color-mix(in srgb, var(--jade-light) 35%, transparent); animation-delay: .6s; }
+  .lanes circle { fill: var(--bg); stroke-width: 3; opacity: 0; animation: pop .5s ease forwards; }
+  .lanes .c1 { stroke: var(--jade); animation-delay: 1.4s; }
+  .lanes .c2 { stroke: var(--amber); animation-delay: 1.7s; }
+  .lanes .c3 { stroke: var(--jade-light); animation-delay: 2s; }
+  @keyframes grow { to { stroke-dashoffset: 0; } }
+  @keyframes pop { to { opacity: 1; } }
+  @keyframes float { 50% { transform: translateY(-10px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .tree .icon, .lanes path, .lanes circle { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  }
+
+  /* ---------- screenshot showcase ---------- */
+  .showcase { padding: 30px 0 40px; }
+  .tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 22px; }
+  .tabs button {
+    font: 500 14px var(--sans); color: var(--muted); cursor: pointer;
+    padding: 8px 15px; border-radius: 999px; border: 1px solid transparent; background: none;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button[aria-selected="true"] { color: var(--text); background: var(--surface); border-color: var(--border); }
+  .frame {
+    border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+    box-shadow: var(--shadow), 0 0 0 6px color-mix(in srgb, var(--surface) 60%, transparent);
+    background: #080C0B;
+  }
+  .frame img { width: 100%; height: auto; aspect-ratio: 1360 / 860; }
+  .caption { text-align: center; color: var(--muted); font-size: 14px; margin-top: 16px; min-height: 1.6em; }
+
+  /* ---------- sections ---------- */
+  section.block { padding: 90px 0 30px; }
+  .kicker { font: 500 13px var(--mono); color: var(--amber); letter-spacing: .04em; }
+  h2 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.08; letter-spacing: -.035em; margin: 10px 0 14px; font-weight: 800; }
+  .sub { color: var(--muted); max-width: 40em; margin: 0 0 40px; font-size: 17px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card {
+    position: relative; padding: 24px; border-radius: 16px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .card h3 { margin: 14px 0 6px; font-size: 17px; letter-spacing: -.01em; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .glyph {
+    width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--jade) 14%, transparent); color: var(--jade-light);
+  }
+  .glyph.amber { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber); }
+  .glyph svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* inside a repository: a commit-lane list */
+  .lane-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
+  .lane-list li { position: relative; padding: 14px 0 18px 40px; }
+  .lane-list li::after {
+    content: ""; position: absolute; left: 11px; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(var(--jade-light), var(--jade-deep));
+  }
+  .lane-list li:nth-child(-n+2)::after { top: 24px; }
+  .lane-list li:nth-last-child(-n+2)::after { bottom: calc(100% - 26px); }
+  .lane-list li::before {
+    content: ""; position: absolute; z-index: 1; left: 4px; top: 18px; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--bg); border: 3px solid var(--jade);
+  }
+  .lane-list li.fruit::before {
+    left: 2px; top: 16px; width: 21px; height: 21px; border: 0;
+    background: radial-gradient(circle at 35% 30%, #FFE3A3, var(--amber) 50%, var(--amber-deep));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--amber) 60%, transparent);
+  }
+  .lane-list b { display: block; font-size: 16px; margin-bottom: 3px; }
+  .lane-list span { color: var(--muted); font-size: 15px; }
+
+  .hosts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .pill {
+    font: 500 13px var(--mono); padding: 6px 11px; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .wide { padding: 30px; }
+  .wide h3 { font-size: 20px; }
+
+  .keys { display: grid; gap: 10px; margin-top: 16px; }
+  .keys div { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 15px; color: var(--muted); border-bottom: 1px dashed var(--border); padding-bottom: 10px; }
+  .keys div:last-child { border-bottom: 0; padding-bottom: 0; }
+  kbd {
+    font-size: 12.5px; color: var(--text); white-space: nowrap;
+    padding: 3px 8px; border-radius: 6px; background: var(--surface-2);
+    border: 1px solid var(--border); border-bottom-width: 2px;
+  }
+
+  /* ---------- download ---------- */
+  .download {
+    margin-top: 90px; padding: 56px 40px; border-radius: 28px; text-align: center; position: relative; overflow: hidden;
+    background:
+      radial-gradient(500px 260px at 50% 0%, color-mix(in srgb, var(--jade) 22%, transparent), transparent 70%),
+      var(--surface);
+    border: 1px solid var(--border);
+  }
+  .download img { width: 84px; height: 84px; margin: 0 auto 16px; }
+  .download h2 { margin-top: 0; }
+  .download .sub { margin-inline: auto; }
+  .oses { display: grid; grid-template-columns: repeat(3, minmax(0, 220px)); justify-content: center; gap: 12px; margin: 0 auto 26px; }
+  .os {
+    display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none;
+    padding: 20px 14px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--border);
+    transition: transform .15s, border-color .15s;
+  }
+  .os:hover { transform: translateY(-2px); border-color: var(--jade); }
+  .os svg { width: 30px; height: 30px; fill: var(--text); }
+  .os b { font-size: 16px; }
+  .os small { color: var(--muted); font-size: 13px; }
+  .note { color: var(--muted); font-size: 14px; margin: 18px auto 0; max-width: 40em; }
+  .note a { color: var(--jade-light); }
+  pre {
+    text-align: left; margin: 22px auto 0; max-width: 560px; overflow-x: auto;
+    padding: 16px 18px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border);
+    font: 13.5px/1.7 var(--mono); color: var(--text);
+  }
+  pre .c { color: var(--muted); }
+
+  footer { padding: 60px 0 50px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 28px; }
+  footer a { color: var(--text); text-decoration: none; }
+  footer a:hover { color: var(--jade-light); }
+  footer .links { display: flex; gap: 20px; flex-wrap: wrap; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 980px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 820px) {
+    .hero { padding-top: 48px; }
+    .hero-grid { grid-template-columns: 1fr; gap: 20px; text-align: center; }
+    .hero-grid .cta { justify-content: center; }
+    .lede { margin-inline: auto; }
+    .tree { max-width: 300px; grid-row: 1; }
+    .split { grid-template-columns: 1fr; }
+    .lane-list { grid-template-columns: 1fr; }
+    .lane-list li:nth-child(2)::after { top: 0; }
+    .lane-list li:nth-last-child(2)::after { bottom: 0; }
+  }
+  @media (max-width: 600px) {
+    .wrap { width: calc(100% - 32px); }
+    .cards { grid-template-columns: 1fr; }
+    .oses { grid-template-columns: 1fr; }
+    .download { padding: 40px 20px; border-radius: 22px; }
+    section.block { padding-top: 70px; }
+    .wide { padding: 22px; }
+    .keys div { flex-direction: column; align-items: flex-start; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="img/icon.png" alt="" width="30" height="30">Orchard</a>
+    <nav>
+      <a class="opt" href="#features">Features</a>
+      <a class="opt" href="#inside">Inside a repo</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/xmhrnx/orchard">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><i></i>git pull, for every repo at once</span>
+        <h1>Tend every <span class="fruit">repo.</span></h1>
+        <p class="lede">Orchard keeps every git repository on your computer in one place. Add the ones you already have,
+          or scan a folder for all of them, clone new ones, and <strong>update one, a few or all of them with a click</strong>
+          instead of visiting each folder.</p>
+        <div class="cta">
+          <a class="btn primary" href="#download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+            Download Orchard
+          </a>
+          <a class="btn" href="https://github.com/xmhrnx/orchard">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+            Source on GitHub
+          </a>
+        </div>
+        <div class="platforms">Windows · macOS · Linux — free and open source</div>
+      </div>
+      <div class="tree" aria-hidden="true">
+        <svg class="lanes" viewBox="0 0 400 400">
+          <path class="l1" d="M200 400 C200 330 60 330 40 250 S30 120 70 40"/>
+          <path class="l2" d="M200 400 C210 340 360 330 370 230 S350 90 320 20"/>
+          <path class="l3" d="M200 400 C190 360 120 380 110 300"/>
+          <circle class="c1" cx="70" cy="40" r="7"/>
+          <circle class="c2" cx="320" cy="20" r="7"/>
+          <circle class="c3" cx="110" cy="300" r="6"/>
+        </svg>
+        <img class="icon" src="img/icon.png" alt="" width="256" height="256">
+      </div>
+    </div>
+  </section>
+
+  <section class="showcase" aria-label="Screenshots">
+    <div class="wrap">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-shot="repositories" data-cap="Every tracked repository with its branch, incoming and outgoing commits, local changes and problems.">Repositories</button>
+        <button role="tab" aria-selected="false" data-shot="history" data-cap="A commit tree with curved, coloured lanes across all branches, and a detail panel.">History</button>
+        <button role="tab" aria-selected="false" data-shot="tags" data-cap="Delete any number of tags at once, locally or everywhere, in a single push.">Tags</button>
+        <button role="tab" aria-selected="false" data-shot="workflows" data-cap="CI runs from GitHub Actions, GitLab pipelines and Bitbucket Pipelines with live status.">Workflows</button>
+        <button role="tab" aria-selected="false" data-shot="releases" data-cap="Releases with their notes rendered and their downloads; create, publish and delete them.">Releases</button>
+      </div>
+      <div class="frame"><img id="shot" src="img/repositories.png" alt="Orchard showing the Repositories page" width="1360" height="860"></div>
+      <p class="caption" id="cap">Every tracked repository with its branch, incoming and outgoing commits, local changes and problems.</p>
+    </div>
+  </section>
+
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="kicker">// your whole orchard at a glance</div>
+      <h2>Every repository, one window.</h2>
+      <p class="sub">See what's behind, ahead, changed or broken across everything you work on, then fix it in bulk.</p>
+      <div class="cards">
+        <div class="card">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-5-5m5 5 5-5M5 20h14"/></svg></div>
+          <h3>Update all, fetch all</h3>
+          <p>Or check a few and update, fetch, push, group or untrack them together. Updates run in parallel with a configurable limit and report a summary.</p>
+        </div>
+        <div class="card">
+          <div class="glyph amber"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+          <h3>Stash around the pull</h3>
+          <p>Local changes can be stashed before a pull and restored after it, if you want, so an update never stops on a dirty tree.</p>
+        </div>
+        <div class="card">
+          <div class="glyph"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+          <h3>Sections by host</h3>
+          <p>github.com, gitlab.com, your own server, local remotes, no remote; or your own groups, or none. Fold a section away or update everything in it.</p>
+        </div>
+        <div class="card">
+          <div class="glyph amber"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg></div>
+          <h3>Filter and search</h3>
+          <p>Filter by changed, behind, ahead or issues; search by name, path, branch or group; organise with groups and pins.</p>
+        </div>
+        <div class="card">
+          <div class="glyph"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg></div>
+          <h3>Fresh in the background</h3>
+          <p>Background fetch keeps incoming and outgoing counts current without you asking.</p>
+        </div>
+        <div class="card">
+          <div class="glyph amber"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5m-2.5-2.5h5"/></svg></div>
+          <h3>Add them however</h3>
+          <p>Add a folder, drop folders on the window, or scan a directory tree and pick which of the found repositories to add.</p>
+        </div>
+      </div>
+
+      <div class="split" style="margin-top:16px">
+        <div class="card wide">
+          <div class="glyph"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg></div>
+          <h3>Any host that speaks git</h3>
+          <p>Clone by URL with live progress. Connect accounts, public or self-hosted, to browse your repositories and <strong>clone many at once</strong>. Tokens are kept in the system credential store (Keychain, Credential Manager, Secret Service), never in the settings file.</p>
+          <div class="hosts">
+            <span class="pill">GitHub</span><span class="pill">GitLab</span><span class="pill">Gitea</span><span class="pill">Forgejo</span><span class="pill">Codeberg</span><span class="pill">Bitbucket</span><span class="pill">Azure DevOps</span><span class="pill">self-hosted</span>
+          </div>
+        </div>
+        <div class="card wide">
+          <div class="glyph amber"><svg viewBox="0 0 24 24"><path d="M6 15h12M9 9h6M4 5h16v14H4z"/></svg></div>
+          <h3>Fast with the keyboard</h3>
+          <p>A command palette jumps to any repository or runs any action.</p>
+          <div class="keys">
+            <div>Command palette <kbd>Ctrl/⌘ K</kbd></div>
+            <div>Update all <kbd>Ctrl/⌘ Shift U</kbd></div>
+            <div>Fetch all <kbd>Ctrl/⌘ Shift F</kbd></div>
+            <div>Refresh <kbd>F5</kbd></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="inside">
+    <div class="wrap">
+      <div class="kicker">// inside a repository</div>
+      <h2>Everything git does, and what it doesn't make easy.</h2>
+      <p class="sub">Open any repository for its history, changes and branches, plus the forge features you'd otherwise visit a website for.</p>
+      <ul class="lane-list">
+        <li><b>History</b><span>A commit tree with curved, coloured lanes across all branches; search; branch, tag, check out, cherry-pick, revert or reset from any commit.</span></li>
+        <li><b>Changes</b><span>Staged and unstaged files with diffs; stage, unstage, discard, commit, amend, commit &amp; push.</span></li>
+        <li><b>Branches</b><span>Switch, merge, rebase, rename, prune merged branches, and delete several at once, on the server too.</span></li>
+        <li><b>Tags</b><span>Create, push, and delete any number of tags at once, locally or everywhere, in a single push.</span></li>
+        <li><b>Releases</b><span>GitHub, GitLab and Gitea/Forgejo releases: create, publish drafts, and delete many at once with their tags.</span></li>
+        <li><b>Pull requests</b><span>List open pull and merge requests and close or merge many at once.</span></li>
+        <li><b>Workflows</b><span>CI runs with live status; re-run, cancel or delete many runs at once, or start a workflow by hand on any branch or tag.</span></li>
+        <li><b>Stashes &amp; remotes</b><span>Everything you'd expect.</span></li>
+        <li class="fruit"><b>Rewrite</b><span>Remove files from all of history, scrub leaked secrets, fix an author, strip large files, squash, reword, undo, and force-push the result.</span></li>
+        <li class="fruit"><b>Night &amp; morning</b><span>Dark "night orchard" and light "morning orchard" themes, a custom frameless window and animated transitions.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="download" id="download">
+      <img src="img/icon.png" alt="Orchard icon" width="84" height="84">
+      <div class="kicker">// plant it</div>
+      <h2>Download Orchard</h2>
+      <p class="sub">Builds for each platform are attached to the latest release on GitHub.</p>
+      <div class="oses">
+        <a class="os" href="https://github.com/xmhrnx/orchard/releases/latest">
+          <svg viewBox="0 0 24 24"><path d="M3 5.1 10.4 4v7.3H3zm0 13.8 7.4 1.1v-7.2H3zM11.3 3.9 21 2.5v8.8h-9.7zm0 16.2 9.7 1.4v-8.7h-9.7z"/></svg>
+          <b>Windows</b><small>64-bit</small>
+        </a>
+        <a class="os" href="https://github.com/xmhrnx/orchard/releases/latest">
+          <svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.8 1.2 1.8 2.6 3.1 2.6 1.3-.1 1.7-.8 3.3-.8 1.5 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.6-1-2.5-4.1zM13.9 5c.7-.8 1.2-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/></svg>
+          <b>macOS</b><small>11 Big Sur or later</small>
+        </a>
+        <a class="os" href="https://github.com/xmhrnx/orchard/releases/latest">
+          <svg viewBox="0 0 24 24"><path d="M12 2c-2.2 0-3.6 1.9-3.6 4.6 0 1.4.3 2.2-.4 3.4C6.7 12 5 14.2 5 16.8c0 .5.1 1 .2 1.4-.6.4-1.5.6-1.8 1.3-.3.9.4 1.5 1.4 1.7 1.1.2 2 .8 3 .8.8 0 1.4-.4 1.8-.9.8.2 1.6.3 2.4.3s1.6-.1 2.4-.3c.4.5 1 .9 1.8.9 1 0 1.9-.6 3-.8 1-.2 1.7-.8 1.4-1.7-.3-.7-1.2-.9-1.8-1.3.1-.4.2-.9.2-1.4 0-2.6-1.7-4.8-3-6.8-.7-1.2-.4-2-.4-3.4C15.6 3.9 14.2 2 12 2zm-1.6 4.2c.4 0 .7.5.7 1.1s-.3 1.1-.7 1.1-.7-.5-.7-1.1.3-1.1.7-1.1zm3.2 0c.4 0 .7.5.7 1.1s-.3 1.1-.7 1.1-.7-.5-.7-1.1.3-1.1.7-1.1zM12 9.2c.9 0 2 .5 2 .9s-1.1 1.1-2 1.1-2-.7-2-1.1.9-.9 2-.9z"/></svg>
+          <b>Linux</b><small>any modern distribution</small>
+        </a>
+      </div>
+      <a class="btn primary" href="https://github.com/xmhrnx/orchard/releases/latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+        Latest release
+      </a>
+      <p class="note">Orchard needs <a href="https://git-scm.com">git</a> on the <code>PATH</code>.
+        <a href="https://github.com/newren/git-filter-repo">git-filter-repo</a> is optional and makes history rewrites fastest.
+        Or build it yourself with the <a href="https://github.com/xmhrnx/giode-cli">Giode CLI</a>:</p>
+      <pre><span class="c"># from a clone of the repository</span>
+giode run
+giode build linux windows</pre>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>Orchard · Apache License 2.0 · built in Go with <a href="https://github.com/xmhrnx/giode">Giode</a></div>
+    <div class="links">
+      <a href="https://github.com/xmhrnx/orchard">Source</a>
+      <a href="https://github.com/xmhrnx/orchard/releases">Releases</a>
+      <a href="https://github.com/xmhrnx/orchard/issues">Issues</a>
+      <a href="https://github.com/xmhrnx/orchard/blob/main/LICENSE">License</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var tabs = document.querySelectorAll('.tabs button');
+    var shot = document.getElementById('shot');
+    var cap = document.getElementById('cap');
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        tabs.forEach(function (o) { o.setAttribute('aria-selected', o === t ? 'true' : 'false'); });
+        shot.src = 'img/' + t.dataset.shot + '.png';
+        shot.alt = 'Orchard showing the ' + t.textContent + ' page';
+        cap.textContent = t.dataset.cap;
+      });
+    });
+  })();
+</script>
+</body>
+</html>

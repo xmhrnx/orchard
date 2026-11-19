@@ -7,6 +7,8 @@ update one, a few or all of them with a click instead of visiting each folder.
 Built in Go with [Giode](https://github.com/xmhrnx/giode) (GPU-rendered, no webview) and packaged
 with the Giode CLI for Windows, macOS and Linux.
 
+Website: [xmhrnx.github.io/orchard](https://xmhrnx.github.io/orchard/)
+
 ![Repositories](docs/screenshots/repositories.png)
 
 ## What it does
@@ -111,6 +113,7 @@ go test ./...
 ```
 main.go              wiring only: window config, workspace, root view
 giode.toml           app metadata for the Giode CLI
+site/                the one-page website (published by .github/workflows/site.yml)
 assets/              app icon (brand/icon.svg is the source), UI glyphs, fonts
 internal/
   gitx/              the git engine: runs the git CLI (status, log, sync, branches, tags,
