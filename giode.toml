@@ -13,14 +13,33 @@ publisher = "Orchard"
 description = "Keep every git repository on your computer up to date and in good shape."
 website = "https://xmhrnx.github.io/orchard/"
 
+# GitHub Actions: giode ci writes .github/workflows/release.yml from this.
+# Builds when a GitHub release is published and attaches the packages to it.
+# After `giode ci -f`, redo two edits by hand in release.yml: pin
+# `go install github.com/xmhrnx/giode-cli/cmd/giode@v0.1.35-alpha.1`
+# (instead of @latest) and use `go-version-file: go.mod` (instead of
+# `go-version: stable`).
+[ci]
+trigger = "release"
+arch = ["amd64", "arm64"]
+test = "go vet ./... && go test ./..."
+
 [macos]
 min_os = 11
-# identity = "Developer ID Application: Your Name (TEAMID)"  # signs giode build -release
-# notary_id = "you@example.com"     # notarizes, with the password in $GIODE_NOTARY_PASS
-# notary_team_id = "TEAMID"
+# Developer ID signing and notarization for the .dmg on GitHub come from
+# the MACOS_CERT_* and GIODE_NOTARY_* repository secrets; see RELEASING.md.
+#
+# No [macos.store]: Orchard is not offered in the Mac App Store. Every
+# operation runs the git command-line tool, and the App Sandbox can't run
+# it (/usr/bin/git is an xcrun shim that refuses to run sandboxed, Homebrew's
+# git is outside the sandbox, ~/.ssh and ~/.gitconfig are unreadable), and
+# the store doesn't allow shipping a separate git. See RELEASING.md.
 
 [macos.plist]
 LSApplicationCategoryType = "public.app-category.developer-tools"
+# Orchard only uses the system's HTTPS (and git's SSH/HTTPS), which is
+# exempt from export documentation.
+ITSAppUsesNonExemptEncryption = false
 
 [windows]
 arch = "amd64"
@@ -35,6 +54,19 @@ arch = "amd64"
 # certificate = "codesign.pfx"   # created by giode cert (testing) or bought; password in $GIODE_WINDOWS_CERT_PASS
 # timestamp = "http://timestamp.digicert.com"
 
+[windows.msix]                    # Microsoft Store: Partner Center → Orchard → Product identity
+# identity_name must match Partner Center → Product identity →
+# Package/Identity/Name once the name "Orchard" is reserved.
+identity_name = "MehranZahir.Orchard"
+publisher = "CN=B40E8F57-A7E0-40BB-8E74-5D051D0B578B"
+publisher_display_name = "Mehran Zahiroddini"
+
 [linux]
 categories = ["Development", "RevisionControl"]     # freedesktop menu categories
 license = "Apache-2.0"       # SPDX, for .deb, .rpm and AppStream
+
+[privacy]                         # PrivacyInfo.xcprivacy for Apple builds
+tracking = false
+# Nothing is collected: settings stay on the computer and account tokens in
+# the system's credential store; Orchard talks only to the git hosts the user
+# works with, never to its developer.
