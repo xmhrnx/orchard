@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"syscall"
+
+	"orchard/internal/tools"
 )
 
 // move sends the folder to the Recycle Bin through the shell's own
@@ -16,7 +17,7 @@ func move(abs string) error {
 	script := "Add-Type -AssemblyName Microsoft.VisualBasic; " +
 		"[Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory('" + path + "', 'OnlyErrorDialogs', 'SendToRecycleBin')"
 	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	tools.HideWindow(cmd)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("%v (%s)", err, strings.TrimSpace(string(out)))
 	}

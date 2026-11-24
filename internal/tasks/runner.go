@@ -145,15 +145,19 @@ func finishLine(t *Task) string {
 }
 
 func (r *Runner) runStep(t *Task, step project.Command) error {
-	t.append(Line{Text: "$ " + strings.Join(step.Args, " "), Info: true})
-	r.notify()
+	command := "$ " + strings.Join(step.Args, " ")
 	bin, err := tools.Find(step.Args[0])
 	if err != nil {
+		t.append(Line{Text: command, Info: true})
 		if hint := project.InstallHint(step.Args[0]); hint != "" {
 			t.append(Line{Text: hint, Info: true})
 		}
 		return err
 	}
+	// Which program ran matters: an app started from the desktop can see
+	// a different PATH than a terminal, and so a different version.
+	t.append(Line{Text: command + "    (" + bin + ")", Info: true})
+	r.notify()
 	cmd := exec.CommandContext(context.Background(), bin, step.Args[1:]...)
 	cmd.Dir = t.Dir
 	cmd.Env = append(os.Environ(), "PATH="+tools.SearchPath(), "FORCE_COLOR=0", "NO_COLOR=1")

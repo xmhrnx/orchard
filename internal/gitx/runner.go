@@ -11,6 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"orchard/internal/tools"
 )
 
 // Error is a failed git invocation with the output git printed.
@@ -74,7 +76,7 @@ func command(ctx context.Context, dir string, args ...string) *exec.Cmd {
 		"FILTER_BRANCH_SQUELCH_WARNING=1",
 		"LC_ALL=C",
 	)
-	hideWindow(cmd)
+	tools.HideWindow(cmd)
 	return cmd
 }
 

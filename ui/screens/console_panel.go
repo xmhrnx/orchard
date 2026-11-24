@@ -2,6 +2,7 @@ package screens
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/xmhrnx/giode"
@@ -29,6 +30,7 @@ type ConsolePanel struct {
 	stop     *giode.ButtonElement
 	again    *giode.ButtonElement
 	dismiss  *components.IconAction
+	copy     *components.IconAction
 	hide     *components.IconAction
 }
 
@@ -52,8 +54,24 @@ func NewConsolePanel(e *env.Env, repoID func() string) *ConsolePanel {
 			e.Tasks.Remove(t)
 		}
 	})
+	c.copy = components.NewIconAction("copy", "Copy output", c.copyOutput)
 	c.hide = components.NewIconAction("chevron-down", "Hide the console", func() { c.hidden[c.repoID()] = true })
 	return c
+}
+
+// copyOutput puts the shown task's whole output on the clipboard, to
+// paste into an issue or a chat.
+func (c *ConsolePanel) copyOutput() {
+	t := c.task()
+	if t == nil {
+		return
+	}
+	lines := t.Snapshot().Lines
+	text := make([]string, len(lines))
+	for i, l := range lines {
+		text[i] = l.Text
+	}
+	c.env.Copy("Output", strings.Join(text, "\n"))
 }
 
 // Show reopens the console, when the user asks for it.
@@ -182,7 +200,7 @@ func (c *ConsolePanel) Layout(gtx giode.Context) giode.Dimensions {
 	} else {
 		actions = append(actions, c.again, c.dismiss)
 	}
-	actions = append(actions, c.hide)
+	actions = append(actions, c.copy, c.hide)
 	return components.Frame(giode.Styles{Width: -1, Height: consoleHeight, Padding: giode.UniformInset(0), BorderRadius: 14, Background: theme.Sunken},
 		giode.Row(giode.Styles{Width: -1, Gap: 8, Align: giode.AlignCenter, Wrap: giode.WrapNoWrap, Padding: giode.SymmetricInset(10, 8)},
 			components.Glyph("terminal", 15, theme.Primary),

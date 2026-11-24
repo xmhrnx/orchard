@@ -20,6 +20,7 @@ func RunDoctor(ctx context.Context, dir string) (Doctor, error) {
 	}
 	cmd := exec.CommandContext(ctx, bin, "doctor")
 	cmd.Dir = dir
+	tools.HideWindow(cmd)
 	cmd.Env = append(os.Environ(), "PATH="+tools.SearchPath(), "NO_COLOR=1")
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
