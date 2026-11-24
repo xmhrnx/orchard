@@ -7,6 +7,7 @@ import (
 
 	"orchard/internal/core"
 	"orchard/internal/store"
+	"orchard/internal/tasks"
 	"orchard/ui/components"
 	"orchard/ui/env"
 	"orchard/ui/screens"
@@ -29,10 +30,11 @@ type Root struct {
 }
 
 // New builds the interface for a workspace.
-func New(app *giode.App, ws *core.Workspace) *Root {
+func New(app *giode.App, ws *core.Workspace, runner *tasks.Runner) *Root {
 	e := &env.Env{
 		App:    app,
 		WS:     ws,
+		Tasks:  runner,
 		Nav:    &env.Navigator{},
 		Toasts: giode.Toaster().Placement(giode.ToastBottomEnd).Max(4).Inset(giode.Inset{Bottom: 8, Right: 8}),
 	}

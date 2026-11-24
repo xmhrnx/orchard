@@ -50,7 +50,7 @@ func NewBranchesView(e *env.Env) *BranchesView {
 		func(i int) giode.Element { return v.row(v.shown[i]) },
 		giode.Styles{Gap: 2, ScrollBar: giode.ScrollBar{Width: 6, AutoHide: true, TrackColor: "transparent"}},
 	)
-	v.bulk = components.NewBulkBar(v.sel, "branches",
+	v.bulk = components.NewBulkBar(v.sel, "branch", "branches",
 		components.Button("Delete", "trash", components.Destructive, func() { v.confirmDelete(false) }),
 		components.Button("Force delete", "alert", components.Destructive, func() { v.confirmDelete(true) }),
 	)

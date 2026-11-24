@@ -2,6 +2,7 @@ package screens
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/xmhrnx/giode"
 	"github.com/xmhrnx/giode/components/checkbox"
@@ -49,7 +50,7 @@ type ReposScreen struct {
 	bulk       *components.BulkBar
 	scan       *ScanDialog
 	prompt     *components.PromptDialog
-	confirm    *components.ConfirmDialog
+	remove     *RemoveReposDialog
 	add        *giode.ButtonElement
 	scanBtn    *giode.ButtonElement
 	fetchAll   *giode.ButtonElement
@@ -79,7 +80,7 @@ func NewReposScreen(e *env.Env) *ReposScreen {
 		OnChange(func(on bool) { s.sel.SetAll(s.visibleIDs(), on) })
 	s.scan = NewScanDialog(e)
 	s.prompt = components.NewPromptDialog()
-	s.confirm = components.NewConfirmDialog()
+	s.remove = NewRemoveReposDialog(e, func(ids []string) { s.sel.SetAll(ids, false) })
 	s.actions = s.repoActions()
 	s.list = giode.LazyList(
 		func() int { return len(s.items) },
@@ -93,12 +94,12 @@ func NewReposScreen(e *env.Env) *ReposScreen {
 	s.updateAll = components.Button("Update all", "pull", components.Primary, func() { s.runOn(core.OpPull, s.allIDs()) })
 	s.addFirst = components.Button("Add a folder", "folder-plus", components.Primary, s.addFolder)
 	s.cloneFirst = components.Button("Clone a repository", "clone", components.Secondary, func() { e.Nav.Open(env.PageClone) })
-	s.bulk = components.NewBulkBar(s.sel, "repositories",
+	s.bulk = components.NewBulkBar(s.sel, "repository", "repositories",
 		components.Button("Update", "pull", components.Primary, func() { s.runOn(core.OpPull, s.sel.Keys()) }),
 		components.Button("Fetch", "fetch", components.Secondary, func() { s.runOn(core.OpFetch, s.sel.Keys()) }),
 		components.Button("Push", "push", components.Secondary, func() { s.runOn(core.OpPush, s.sel.Keys()) }),
 		components.Button("Group", "layers", components.Secondary, s.groupSelected),
-		components.Button("Untrack", "trash", components.Destructive, func() { s.confirmRemove(s.sel.Keys()) }),
+		components.Button("Remove", "trash", components.Destructive, func() { s.confirmRemove(s.sel.Keys()) }),
 	)
 	return s
 }
@@ -176,15 +177,7 @@ func (s *ReposScreen) groupSelected() {
 	})
 }
 
-func (s *ReposScreen) confirmRemove(ids []string) {
-	body := "Orchard will stop tracking these repositories. Nothing is deleted from your disk."
-	s.confirm.Ask("Stop tracking?", body, "Untrack", true, func() {
-		giode.AfterLayout(func() {
-			s.env.Fail("Untracking", s.env.WS.Remove(ids...))
-			s.sel.SetAll(ids, false)
-		})
-	})
-}
+func (s *ReposScreen) confirmRemove(ids []string) { s.remove.Ask(ids) }
 
 func (s *ReposScreen) collectRows() {
 	f := repoFilter(s.filter.Selected())
@@ -287,7 +280,6 @@ func (s *ReposScreen) body() giode.Element {
 		list = components.EmptyState("filter", "Nothing matches", "Try another filter or search.", nil)
 	}
 	return giode.Stack(giode.Styles{Width: -1, Height: -1, Gap: 18},
-		RepoStats(all),
 		s.toolbar(),
 		list,
 	)
@@ -299,11 +291,44 @@ func (s *ReposScreen) Layout(gtx giode.Context) giode.Dimensions {
 	s.buildItems()
 	return giode.Box(giode.Styles{Width: -1, Height: -1},
 		giode.Stack(giode.Styles{Width: -1, Height: -1, Gap: 22, Padding: giode.Inset{Top: 26, Left: 32, Right: 32}},
-			components.PageHeader("Repositories", "Everything you grow, in one place. Update one, a few, or all of them.",
+			components.PageHeader("Repositories", repoSummary(s.env.WS.Repos()),
 				s.add, s.scanBtn, s.fetchAll, s.updateAll),
 			s.body(),
 		),
 		giode.Box(giode.Styles{Position: giode.PositionAbsolute, Bottom: 24, Left: giode.Flush, Right: giode.Flush, Justify: giode.JustifyCenter, ZIndex: 5}, s.bulk),
-		s.scan, s.prompt, s.confirm,
+		s.scan, s.prompt, s.remove,
 	).Layout(gtx)
+}
+
+// repoSummary is the one-line state of the whole orchard.
+func repoSummary(repos []*core.RepoState) string {
+	if len(repos) == 0 {
+		return "Everything you grow, in one place."
+	}
+	var behind, dirty, ahead int
+	for _, r := range repos {
+		if r.Status.Behind > 0 {
+			behind++
+		}
+		if r.Status.Dirty() {
+			dirty++
+		}
+		if r.Status.Ahead > 0 {
+			ahead++
+		}
+	}
+	parts := []string{count(len(repos), "repository", "repositories")}
+	if behind > 0 {
+		parts = append(parts, fmt.Sprintf("%d need updating", behind))
+	}
+	if dirty > 0 {
+		parts = append(parts, fmt.Sprintf("%d with local changes", dirty))
+	}
+	if ahead > 0 {
+		parts = append(parts, fmt.Sprintf("%d with unpushed commits", ahead))
+	}
+	if len(parts) == 1 {
+		parts = append(parts, "all up to date")
+	}
+	return strings.Join(parts, " · ")
 }

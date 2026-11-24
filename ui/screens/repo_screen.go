@@ -11,19 +11,24 @@ import (
 // RepoScreen is one repository in depth: its header and a tab for each
 // area of work.
 type RepoScreen struct {
-	env    *env.Env
-	id     string
-	header *RepoHeader
-	tabs   *components.TabStrip
-	views  []repoView
-	stage  *giode.TransitionElement
+	env     *env.Env
+	id      string
+	header  *RepoHeader
+	project *ProjectBar
+	console *ConsolePanel
+	tabs    *components.TabStrip
+	views   []repoView
+	stage   *giode.TransitionElement
 }
 
 // NewRepoScreen creates the page. Create it once; Open shows a
 // repository.
 func NewRepoScreen(e *env.Env) *RepoScreen {
 	s := &RepoScreen{env: e}
-	s.header = NewRepoHeader(e, func() string { return s.id })
+	repoID := func() string { return s.id }
+	s.project = NewProjectBar(e, repoID)
+	s.console = NewConsolePanel(e, repoID)
+	s.header = NewRepoHeader(e, repoID, s.project, s.console.Show)
 	changes := NewChangesView(e)
 	s.views = []repoView{
 		NewHistoryView(e),
@@ -63,6 +68,7 @@ func (s *RepoScreen) Open(id string) {
 	s.id = id
 	if r := s.env.WS.Repo(id); r != nil {
 		s.env.WS.Refresh(id)
+		s.project.Detect(r)
 		s.views[s.tabs.Active()].Open(r)
 	}
 }
@@ -88,5 +94,6 @@ func (s *RepoScreen) Layout(gtx giode.Context) giode.Dimensions {
 		s.header,
 		s.tabs,
 		giode.Box(giode.Styles{Width: -1, FlexGrow: 1}, s.stage),
+		s.console,
 	).Layout(gtx)
 }

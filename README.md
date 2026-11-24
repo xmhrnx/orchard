@@ -15,7 +15,7 @@ Website: [xmhrnx.github.io/orchard](https://xmhrnx.github.io/orchard/)
 
 **Your whole orchard at a glance**
 - Every tracked repository with its branch, incoming and outgoing commits, local changes, stashes
-  and problems (no upstream, errors), plus headline counts.
+  and problems (no upstream, errors), with a one-line summary of the whole list.
 - Sections by host (github.com, gitlab.com, your own server, local remotes, no remote) by
   default, or by your own groups, or none. Fold a section away or update everything in it.
 - Filter by state (changed, behind, ahead, issues), search by name, path, branch or group, and
@@ -26,6 +26,8 @@ Website: [xmhrnx.github.io/orchard](https://xmhrnx.github.io/orchard/)
 - Background fetch keeps the counts fresh.
 - Add a folder, drop folders on the window, or scan a directory tree and pick which of the found
   repositories to add.
+- Remove repositories from the list, or delete them with their files: the folders go to the
+  Trash or Recycle Bin, after Orchard names any work that exists only on this computer.
 
 **Any host that speaks git**
 - Clone by URL from GitHub, GitLab, Gitea/Forgejo/Codeberg, Bitbucket, Azure DevOps or any
@@ -33,6 +35,19 @@ Website: [xmhrnx.github.io/orchard](https://xmhrnx.github.io/orchard/)
 - Connect accounts (GitHub, GitLab, Gitea/Forgejo, Bitbucket; public or self-hosted) to browse
   your repositories and **clone many at once**. Tokens are kept in the system credential store
   (Keychain, Credential Manager, Secret Service), never in the settings file.
+
+**Run and build your projects**
+- Orchard recognises Giode apps, npm projects (also pnpm, yarn and bun) and Go modules, and puts
+  their commands in the repository header.
+- Giode: **Run** (`giode run`, which becomes Stop while the app runs) and **Build** with a target
+  dropdown checked against `giode doctor`: targets this computer can't build say why. Tick the
+  targets once; Orchard remembers them per repository, so Build is one click after that. A
+  Giode menu runs doctor, upgrades Giode in the project, updates the giode CLI, bumps the
+  version, and opens or cleans the build output.
+- npm: **Run**, **Dev** and **Build** for the `start`, `dev` and `build` scripts that exist,
+  installing dependencies first when `node_modules` is missing.
+- Output streams into a console under the page, with Stop and Run again. Tasks keep running
+  while you look at other repositories, and stop when Orchard quits.
 
 **Inside a repository**
 - **History**: a commit tree with curved, coloured lanes across all branches; search; a detail
@@ -66,6 +81,8 @@ Website: [xmhrnx.github.io/orchard](https://xmhrnx.github.io/orchard/)
 - Open a repository in the file manager or a terminal, copy paths and hashes.
 - Dark ("night orchard") and light ("morning orchard") themes, custom frameless window with
   macOS-style traffic lights on a Mac and Windows-style controls elsewhere, animated transitions.
+
+![Running and building](docs/screenshots/project.png)
 
 ![History](docs/screenshots/history.png)
 
@@ -123,6 +140,10 @@ internal/
   store/             settings, repositories and accounts on disk
   batch/             bounded parallel work over many items
   core/              the workspace: tracked repositories, bulk operations, accounts
+  project/           recognises Giode, npm and Go projects; giode doctor and build targets
+  tasks/             runs project commands, keeps their output, stops their processes
+  tools/             finds git, giode, go and npm, also outside a desktop app's PATH
+  trash/             moves folders to the system trash
 ui/
   app.go             the root view; shortcuts.go and commands.go beside it
   theme/             palettes, fonts and shared style tokens

@@ -9,6 +9,7 @@ import (
 
 	"orchard/internal/gitx"
 	"orchard/internal/store"
+	"orchard/internal/trash"
 )
 
 // AddPaths starts tracking folders. Each is resolved to the root of its
@@ -127,4 +128,51 @@ func (w *Workspace) Refresh(ids ...string) {
 			})
 		}()
 	}
+}
+
+// SetBuildTargets remembers which targets Build builds for a repository.
+func (w *Workspace) SetBuildTargets(id string, targets []string) error {
+	r := w.repos[id]
+	if r == nil {
+		return nil
+	}
+	r.BuildTargets = append([]string(nil), targets...)
+	return w.save()
+}
+
+// Trash moves repositories' folders to the system trash and stops
+// tracking the ones that went. done runs on the UI goroutine with how
+// many were trashed.
+func (w *Workspace) Trash(ids []string, done func(trashed int, err error)) {
+	type target struct{ id, path string }
+	var targets []target
+	for _, id := range ids {
+		if r := w.repos[id]; r != nil && r.Busy == "" {
+			r.Busy = "Deleting"
+			targets = append(targets, target{id, r.Path})
+		}
+	}
+	go func() {
+		var gone []string
+		var errs []error
+		for _, t := range targets {
+			if err := trash.Move(t.path); err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			gone = append(gone, t.id)
+		}
+		w.post(func() {
+			for _, t := range targets {
+				if r := w.repos[t.id]; r != nil {
+					r.Busy = ""
+				}
+			}
+			err := errors.Join(errs...)
+			if len(gone) > 0 {
+				err = errors.Join(err, w.Remove(gone...))
+			}
+			done(len(gone), err)
+		})
+	}()
 }

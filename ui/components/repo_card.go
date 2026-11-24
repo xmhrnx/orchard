@@ -56,7 +56,7 @@ func newRepoCard(id string, sel *Selection, act *RepoActions) *RepoCard {
 		IconItem(GlyphSource("copy"), "Copy path", func() { act.CopyPath(id) }).
 		IconItem(GlyphSource("pin"), "Pin / unpin", func() { act.TogglePin(id) }).
 		Separator().
-		IconItem(GlyphSource("trash"), "Stop tracking", func() { act.Remove(id) })
+		IconItem(GlyphSource("trash"), "Remove…", func() { act.Remove(id) })
 	c.more = c.menu.Trigger(NewIconAction("dots", "More", func() {}))
 	c.press = giode.Pressable(c.content).Label("Open " + id).OnClick(func(giode.ClickEvent) { act.Open(id) })
 	c.press.Context(c.menu)

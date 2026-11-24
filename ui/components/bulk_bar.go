@@ -13,16 +13,17 @@ import (
 // first item is checked and away when the selection empties.
 type BulkBar struct {
 	sel     *Selection
-	noun    string
+	one     string
+	many    string
 	actions []giode.Element
 	clear   *IconAction
 	anim    *giode.TransitionElement
 }
 
-// NewBulkBar creates the bar for a selection; noun names the items
-// ("tags"). Create it once.
-func NewBulkBar(sel *Selection, noun string, actions ...giode.Element) *BulkBar {
-	b := &BulkBar{sel: sel, noun: noun, actions: actions}
+// NewBulkBar creates the bar for a selection; one and many name the
+// items ("tag", "tags"). Create it once.
+func NewBulkBar(sel *Selection, one, many string, actions ...giode.Element) *BulkBar {
+	b := &BulkBar{sel: sel, one: one, many: many, actions: actions}
 	b.clear = NewIconAction("x", "Clear selection", sel.Clear)
 	b.anim = giode.Transition(giode.Raw(b.layoutBar), giode.Fade|giode.SlideUp, theme.Smooth, giode.EaseOutBack).Hidden()
 	return b
@@ -32,7 +33,7 @@ func (b *BulkBar) layoutBar(gtx giode.Context) giode.Dimensions {
 	kids := []giode.Element{
 		giode.Box(giode.Styles{Padding: giode.SymmetricInset(10, 4), BorderRadius: theme.RadiusPill, Background: theme.Primary},
 			giode.Text(fmt.Sprint(b.sel.Count()), giode.Styles{FontSize: 12, FontWeight: giode.FontWeightBold, Color: theme.OnPrimary})),
-		giode.Text(b.noun+" selected", giode.Styles{FontSize: 13, Color: theme.Text}),
+		giode.Text(b.noun()+" selected", giode.Styles{FontSize: 13, Color: theme.Text}),
 		giode.Box(giode.Styles{Width: 1, Height: 22, Background: theme.Hairline, Margin: giode.SymmetricInset(4, 0)}),
 	}
 	kids = append(kids, b.actions...)
@@ -42,6 +43,13 @@ func (b *BulkBar) layoutBar(gtx giode.Context) giode.Dimensions {
 		Padding: giode.Inset{Top: 8, Bottom: 8, Left: 10, Right: 8}, BorderRadius: 14,
 		Background: theme.Raised,
 	}, kids...).Layout(gtx)
+}
+
+func (b *BulkBar) noun() string {
+	if b.sel.Count() == 1 {
+		return b.one
+	}
+	return b.many
 }
 
 // Layout draws the bar while anything is selected.

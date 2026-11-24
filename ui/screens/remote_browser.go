@@ -49,7 +49,7 @@ func NewRemoteBrowser(e *env.Env, jobs *CloneJobs) *RemoteBrowser {
 		func(i int) giode.Element { return b.row(b.shown[i]) },
 		giode.Styles{Gap: 2, ScrollBar: giode.ScrollBar{Width: 6, AutoHide: true, TrackColor: "transparent"}},
 	)
-	b.bulk = components.NewBulkBar(b.sel, "repositories",
+	b.bulk = components.NewBulkBar(b.sel, "repository", "repositories",
 		components.Button("Clone selected", "clone", components.Primary, b.cloneSelected),
 	)
 	return b

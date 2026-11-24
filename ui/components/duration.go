@@ -5,11 +5,13 @@ import (
 	"time"
 )
 
-// Duration formats a span briefly: "42s", "3m 05s", "1h 12m".
+// Duration formats a span briefly: "0.8s", "42s", "3m 05s", "1h 12m".
 func Duration(d time.Duration) string {
 	switch {
 	case d <= 0:
 		return ""
+	case d < 10*time.Second:
+		return fmt.Sprintf("%.1fs", d.Seconds())
 	case d < time.Minute:
 		return fmt.Sprintf("%ds", int(d.Seconds()))
 	case d < time.Hour:

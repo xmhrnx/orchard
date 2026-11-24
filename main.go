@@ -11,6 +11,7 @@ import (
 	"orchard/assets"
 	"orchard/internal/core"
 	"orchard/internal/store"
+	"orchard/internal/tasks"
 	"orchard/ui"
 	"orchard/ui/theme"
 )
@@ -32,6 +33,9 @@ func main() {
 	var app *giode.App
 	ws, loadErr := core.New(func(fn func()) { app.Post(fn) }, st, giode.SecureStore)
 	theme.SetDark(ws.Settings().Theme != "light")
+
+	// Task output arrives on other goroutines; an empty Post redraws.
+	runner := tasks.NewRunner(func() { app.Post(func() {}) })
 
 	var root *ui.Root
 	app = giode.New(giode.Config{
@@ -57,9 +61,12 @@ func main() {
 				root.Env().Done("Added dropped repositories", err)
 			})
 		},
-		OnShutdown: ws.Close,
+		OnShutdown: func() {
+			runner.StopAll()
+			ws.Close()
+		},
 	})
-	root = ui.New(app, ws)
+	root = ui.New(app, ws, runner)
 	if err := app.Run(root.View); err != nil {
 		log.Fatal(err)
 	}

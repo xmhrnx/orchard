@@ -22,6 +22,9 @@ type Repo struct {
 	Group   string    `json:"group,omitempty"`
 	Pinned  bool      `json:"pinned,omitempty"`
 	AddedAt time.Time `json:"added_at"`
+	// BuildTargets are the giode build targets last chosen for the
+	// repository, so Build needs no setup the next time.
+	BuildTargets []string `json:"build_targets,omitempty"`
 }
 
 // Settings are the user's preferences.

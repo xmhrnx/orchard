@@ -76,7 +76,7 @@ func NewReleasesView(e *env.Env) *ReleasesView {
 		func(i int) giode.Element { return v.row(v.shown[i]) },
 		giode.Styles{Gap: 2, ScrollBar: giode.ScrollBar{Width: 6, AutoHide: true, TrackColor: "transparent"}},
 	)
-	v.bulk = components.NewBulkBar(v.sel, "releases",
+	v.bulk = components.NewBulkBar(v.sel, "release", "releases",
 		components.Button("Delete", "trash", components.Secondary, func() { v.confirmDelete(v.selected(), false) }),
 		components.Button("Delete with tags", "trash", components.Destructive, func() { v.confirmDelete(v.selected(), true) }),
 	)

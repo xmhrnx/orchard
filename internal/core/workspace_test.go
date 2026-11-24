@@ -83,3 +83,38 @@ func TestAddPathsTracksARepositoryOnce(t *testing.T) {
 		t.Fatalf("saved state = %+v, %v", saved.Repos, err)
 	}
 }
+
+func TestTrashUntracksAndMovesTheFolder(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed")
+	}
+	t.Setenv("XDG_DATA_HOME", t.TempDir())
+	repo := filepath.Join(t.TempDir(), "doomed")
+	if out, err := exec.Command("git", "init", "-q", repo).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v %s", err, out)
+	}
+	l := make(loop, 64)
+	w, err := New(l.post, store.OpenAt(filepath.Join(t.TempDir(), "state.json")), memVault{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	added := -1
+	w.AddPaths([]string{repo}, func(n int, _ error) { added = n })
+	l.until(t, func() bool { return added >= 0 })
+
+	trashed := -1
+	w.Trash([]string{w.Repos()[0].ID}, func(n int, err error) {
+		if err != nil {
+			t.Errorf("Trash: %v", err)
+		}
+		trashed = n
+	})
+	l.until(t, func() bool { return trashed >= 0 })
+	if trashed != 1 || len(w.Repos()) != 0 {
+		t.Fatalf("trashed %d, still tracking %d", trashed, len(w.Repos()))
+	}
+	if _, err := os.Stat(repo); !os.IsNotExist(err) {
+		t.Error("the folder is still there")
+	}
+}

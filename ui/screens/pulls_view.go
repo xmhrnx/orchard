@@ -46,7 +46,7 @@ func NewPullsView(e *env.Env) *PullsView {
 		func(i int) giode.Element { return v.row(v.pulls[i]) },
 		giode.Styles{Gap: 2, ScrollBar: giode.ScrollBar{Width: 6, AutoHide: true, TrackColor: "transparent"}},
 	)
-	v.bulk = components.NewBulkBar(v.sel, "requests",
+	v.bulk = components.NewBulkBar(v.sel, "request", "requests",
 		components.Button("Merge", "merge", components.Secondary, func() { v.confirmBulk(true) }),
 		components.Button("Close", "x", components.Destructive, func() { v.confirmBulk(false) }),
 	)

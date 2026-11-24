@@ -92,7 +92,7 @@ func NewWorkflowsView(e *env.Env) *WorkflowsView {
 	v.bulkRerun = components.Button("Re-run", "fetch", components.Secondary, func() { v.confirmBulk(actRerun, v.sel.Keys()) })
 	v.bulkCancel = components.Button("Cancel", "stop", components.Secondary, func() { v.confirmBulk(actCancel, v.sel.Keys()) })
 	v.bulkDelete = components.Button("Delete", "trash", components.Destructive, func() { v.confirmBulk(actDelete, v.sel.Keys()) })
-	v.bulk = components.NewBulkBar(v.sel, "runs", v.bulkRerun, v.bulkCancel, v.bulkDelete)
+	v.bulk = components.NewBulkBar(v.sel, "run", "runs", v.bulkRerun, v.bulkCancel, v.bulkDelete)
 	return v
 }
 

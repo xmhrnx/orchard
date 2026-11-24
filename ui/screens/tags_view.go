@@ -76,7 +76,7 @@ func NewTagsView(e *env.Env) *TagsView {
 		func(i int) giode.Element { return v.row(v.shown[i]) },
 		giode.Styles{Gap: 2, ScrollBar: giode.ScrollBar{Width: 6, AutoHide: true, TrackColor: "transparent"}},
 	)
-	v.bulk = components.NewBulkBar(v.sel, "tags",
+	v.bulk = components.NewBulkBar(v.sel, "tag", "tags",
 		components.Button("Delete locally", "trash", components.Secondary, func() { v.confirmDelete(false) }),
 		components.Button("Delete everywhere", "trash", components.Destructive, func() { v.confirmDelete(true) }),
 	)

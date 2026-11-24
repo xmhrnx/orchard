@@ -12,12 +12,14 @@ import (
 	"github.com/xmhrnx/giode"
 
 	"orchard/internal/core"
+	"orchard/internal/tasks"
 )
 
 // Env is shared by all screens. It is used on the UI goroutine only.
 type Env struct {
 	App    *giode.App
 	WS     *core.Workspace
+	Tasks  *tasks.Runner
 	Toasts *giode.ToasterElement
 	Nav    *Navigator
 }
